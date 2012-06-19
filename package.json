@@ -1,0 +1,31 @@
+{
+	"name": "injector.js",
+	"description": "Dependency injection library for JavaScript in browsers and NodeJS",
+	"version": "1.0.0",
+	"homepage": "https://github.com/TEHEK/injector.js",
+	"author": "TEHEK Firefox",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/TEHEK/injector.js.git"
+	},
+	"bugs": {
+		"mail": "dev@tehek.net",
+		"url": "https://github.com/TEHEK/injector.js/issues"
+	},
+	"licenses": [
+		{
+			"type": "BSD",
+			"file": "LICENSE.BSD"
+		}
+	],
+	"scripts": {
+		"test": "node_modules/.bin/jasmine-node test/specs/"
+	},
+	"devDependencies": {
+		"jasmine-node": ">=1.0"
+	},
+	"main": "./lib/injector.js",
+	"engines": {
+		"node": ">=0.4"
+	}
+}
