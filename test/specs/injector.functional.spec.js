@@ -16,7 +16,6 @@ beforeEach(function() {
 			} catch (e) {
 				err = e;
 				match = e.message.match(regexp) !== null;
-				console.log(e.message.match(regexp));
 				thrown = true;
 			}
 			
@@ -26,7 +25,7 @@ beforeEach(function() {
 				}
 				
 				if (!match) {
-					return 'Expected error message "' + err.message + '" to match ' + regexp
+					return 'Expected error message "' + err.message + '" to match ' + regexp;
 				}
 			};
 			
@@ -55,13 +54,6 @@ describe('Injector', function () {
 		expect(subj instanceof lib.Injector).toBe(true);
 	});
 	
-	xdescribe('instance creation with #create', function () {
-		var Class;
-		beforeEach(function () {
-			Class = function () {};
-		});
-	});
-	
 	describe('Pre-configured dependency resolution.', function () {
 		var Class;
 		beforeEach(function () {
@@ -69,37 +61,8 @@ describe('Injector', function () {
 			subj.register('Class', Class);
 		});
 		
-		describe('#create', function () {
-			it('should recursively create objects for string-type bindigns');
-			
-			it('if binding is a callback, it should be called', function () {
-				var spy = jasmine.createSpy();
-				Class.$inject = [
-					spy
-				];
-				
-				var inst = subj.create('Class');
-				
-				expect(spy).toHaveBeenCalledWith(subj, ['Class'], 0, null);
-			});
-			
-			it('if binding is a callback and $inject is a hash, it should pass instance to callback', function () {
-				var spy = jasmine.createSpy().andCallFake(function(injector, bindingPath, paramName, instance) {
-						instance[paramName] = 'value';
-					});
-				Class.$inject = {
-					'param': spy
-				};
-				
-				var inst = subj.create('Class');
-				
-				expect(spy).toHaveBeenCalledWith(subj, ['Class'], 'param', inst);
-				expect(inst.param).toBe('value');
-			});
-		});
-		
-		describe('when $inject is an array', function () {
-			it('should inject dependencies into constructor of created instance (constructor injection)', function () {
+		describe('$inject', function () {
+			it('should configure dependencies for constructor injection', function () {
 				Class = function (params) {
 					this.params = params;
 				};
@@ -124,145 +87,194 @@ describe('Injector', function () {
 			});
 		});
 		
-		describe('when $inject is an object', function () {
-			it('should do a property injection', function () {
-				Class = function () {};
-				Class.$inject = {
-					params: 'params'
+		describe('$config', function () {
+			it('should configure property and setter dependencies', function () {
+				Class.$config = [
+					{property: 'prop', binding: 'prop'}, 
+					{setter: 'setValue', value: 'value'}
+				];
+				
+				Class.prototype.setValue = function (value) {
+					this.value = value;
 				};
 				
-				subj.register('Class', Class);
-				subj.set('params', {
-					test: 'Test'
-				});
-				
-				var res = subj.create('Class');
-				
-				expect(res).toBeInstanceOf(Class);
-				
-				console.log(res);
-				expect(
-					res.params
-				).toEqual({
-					test: 'Test'
-				});
-			});
-			
-			it('should do a setter injection if binding is wrapped in "()"', function () {
-				Class = function() {};
-				Class.$inject = {
-					'setParams' : '(params)'
-				};
-				Class.prototype.setParams = jasmine.createSpy();
-				
-				subj.register('Class', Class);
-				subj.set('params', 'params value');
+				var obj = {};
+				subj.set('prop', obj);
 				
 				var inst = subj.create('Class');
 				
-				expect(
-					inst.setParams
-				).toHaveBeenCalledWith('params value');
+				expect(inst.prop).toBe(obj);
+				expect(inst.value).toBe('value');
+			});
+			
+			it('should treat strings as property injection bindings', function () {
+				Class.$config = ['property1', 'property2'];
+				var obj = {};
+				
+				subj.set('property1', 1);
+				subj.set('property2', obj);
+				
+				var inst = subj.create('Class');
+				
+				expect(inst.property1).toBe(1);
+				expect(inst.property2).toBe(obj);
+			});
+			
+			it('should treat strings surrounded by parenthesis as setter injection bindings', function () {
+				Class.$config = ['(setProp)'];
+				Class.prototype.setProp = jasmine.createSpy();
+				
+				var obj = {};
+				
+				subj.set('setProp', obj);
+				
+				var inst = subj.create('Class');
+				
+				expect(inst.setProp).toHaveBeenCalledWith(obj);
 			});
 			
 			it('should throw descriptive error if setter injection applied to non-function', function () {
 				Class = function() {};
-				Class.$inject = {
-					'setParams' : '(params)'
-				};
+				Class.$config = ['(setParams)'];
+				
 				Class.prototype.setParams = 'not a function';
 				
 				subj.register('Class', Class);
-				subj.set('params', 'params value');
+				subj.set('setParams', 'params value');
 				
 				expect(function(){
 					subj.create('Class');
-				}).toThrowErrorLike(/Attempted setter injection into non-function: Class#setParams\(\)/);
+				}).toThrowErrorLike(/Attempted setter injection into non-function: Class#setParams/);
+			});
+		});
+		
+		describe('#register', function () {
+			it('should bind binding to constructor', function () {
+				subj.register('Class', Class);
+				
+				expect(
+					subj.create('Class')
+				).toBeInstanceOf(Class);
+			});
+			
+			it('should allow specifying nested bindings with path separated by "->"', function () {
+				var spy = jasmine.createSpy();
+				var fail = jasmine.createSpy();
+				
+				Class.$inject = ['Dependency'];
+				
+				subj.register('Class->Dependency', spy);
+				subj.register('Dependency', fail);
+				
+				subj.create('Class');
+				
+				expect(spy).toHaveBeenCalled();
+				expect(fail).not.toHaveBeenCalled();
+			});
+		});
+		
+		describe('#create', function () {
+			it('should recursively create objects for bindings', function () {
+				var Dependency = jasmine.createSpy();
+				subj.register('Dependency', Dependency);
+								
+				var obj = {};
+				var Nested = jasmine.createSpy();
+				
+				Class.$inject = ['Dependency']
+			});
+			
+			it('if binding is a callback, it should be called', function () {
+				var spy = jasmine.createSpy();
+				Class.$inject = [
+					spy
+				];
+				
+				var inst = subj.create('Class');
+				
+				expect(spy).toHaveBeenCalledWith(subj, ['Class'], 0);
+			});
+			
+			it('should throw error if binding is not a string or function', function () {
+				Class.$inject = [
+					{}, [], 1
+				];
+				
+				expect(function () {
+					subj.create('Class');
+				}).toThrowErrorLike(/Invalid first binding in constructor for Class/);
+				
+				subj.set('param', 1);
+				Class.$inject = ['param', {}];
+				
+				expect(function() {
+					subj.create('Class');
+				}).toThrowErrorLike(/Invalid second binding in constructor for Class/);
+				
+				Class.$inject = ['param', 'param', {}];
+				expect(function() {
+					subj.create('Class');
+				}).toThrowErrorLike(/Invalid third binding in constructor for Class/);
+				
+				Class.$inject = ['param', 'param', 'param', {}];
+				expect(function() {
+					subj.create('Class');
+				}).toThrowErrorLike(/Invalid 4th binding in constructor for Class/);
+			});
+			
+			xit('if binding is a callback and $inject is a hash, it should pass instance to callback', function () {
+				var spy = jasmine.createSpy().andCallFake(function(injector, bindingPath, paramName, instance) {
+						instance[paramName] = 'value';
+					});
+				Class.$inject = {
+					'param': spy
+				};
+				
+				var inst = subj.create('Class');
+				
+				expect(spy).toHaveBeenCalledWith(subj, ['Class'], 'param', inst);
+				expect(inst.param).toBe('value');
 			});
 		});
 	});
 	
-	describe('Manually configured dependency resolution.', function () {
-		var Class;
+	describe('Manually configured dependencies', function () {
+		var Class, Dependency;
 		beforeEach(function () {
-			Class = function () {};
+			Class = jasmine.createSpy();
 			subj.register('Class', Class);
+			
+			Dependency = jasmine.createSpy();
+			subj.register('Dependency', Dependency);
 		});
 		
-		describe('Injector.Value', function () {
-			it('should accept argument which will be used to inject dependency in constructor', function () {
-				var value = {someValue: 10};
-				Class = jasmine.createSpy();
-				Class.$inject = [Injector.Value(value)];
-				
-				subj.register('Class', Class);
-				
-				var inst = subj.create('Class');
-				
-				expect(Class).toHaveBeenCalledWith(value);
+		it('should be configurable with #register', function () {
+			subj.register('Class', Class, {
+				inject: ['Dependency'],
+				config: [{
+					property: 'param',
+					value: 10
+				}]
 			});
 			
-			it('should accept argument which will be used to inject property dependency', function () {
-				var value = {someValue: 10};
-				Class.$inject = {
-					property: Injector.Value(value)
-				};
-				
-				var inst = subj.create('Class');
-				
-				expect(inst.property).toBe(value);
-			});
+			subj.create('Class');
 			
-			xit('should be usable in `register`', function () {
-				var value = {someValue: 10};
-				
-				subj.register('value', Injector.Value(value));
-				
-				expect(
-					subj.create('value')
-				).toBe(value);
-			});
+			expect(Class).toHaveBeenCalled();
+			expect(Dependency).toHaveBeenCalled();
+			expect(Class.argsForCall[0][0]).toBeInstanceOf(Dependency);
 		});
 		
-		describe('Injector.Setter', function () {
-			var Dependency, NestedDependency;
-			
-			beforeEach(function () {
-				NestedDependency = jasmine.createSpy();
-				Dependency = jasmine.createSpy();
-				Dependency.$inject = ['NestedDependency'];
-				
-				subj.register('NestedDependency', NestedDependency);
-				subj.register('Dependency', Dependency);
-				
-				Class.prototype.setter = jasmine.createSpy();
+		it('should take precedence over pre-configured injections', function () {
+			Class.$config = [{property: 'param', value: 'fail'}];
+			subj.register('Class', Class, {
+				config: [{
+					property: 'param', value: 'win'
+				}]
 			});
 			
-			it('should accept binding as argument which will be recursively resolved', function () {
-				Class.$inject = {
-					setter: Injector.Setter('Dependency')
-				};
-				
-				var inst = subj.create('Class');
-				
-				// check that setter was called and Dependency was created for it
-				expect(inst.setter).toHaveBeenCalled();
-				expect(inst.setter.argsForCall[0][0]).toBeInstanceOf(Dependency);
-				
-				// check that dependencies created recursively
-				expect(NestedDependency).toHaveBeenCalled();
-			});
+			var inst = subj.create('Class');
 			
-			it('should accept Injector.Value as binding', function () {
-				var value = {someValue: 10};
-				Class.$inject = {
-					setter: Injector.Setter(Injector.Value(value))
-				};
-				
-				var inst = subj.create('Class');
-				
-				expect(inst.setter).toHaveBeenCalledWith(value);
-			});
+			expect(inst.param).toBe('win');
 		});
 	});
 });

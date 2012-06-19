@@ -16,7 +16,6 @@ beforeEach(function() {
 			} catch (e) {
 				err = e;
 				match = e.message.match(regexp) !== null;
-				console.log(e.message.match(regexp));
 				thrown = true;
 			}
 			
@@ -26,7 +25,7 @@ beforeEach(function() {
 				}
 				
 				if (!match) {
-					return 'Expected error message "' + err.message + '" to match ' + regexp
+					return 'Expected error message "' + err.message + '" to match ' + regexp;
 				}
 			};
 			
@@ -118,8 +117,8 @@ describe('Injector', function () {
 		
 		it('should throw error if binding not resolved', function () {
 			expect(function () {
-				subj.create('unresolved binding')
-			}).toThrowErrorLike(/not found/);
+				subj.create('unresolved binding');
+			}).toThrowErrorLike(/Binding "unresolved binding" is not registered/);
 		});
 			
 		it('should throw error when cyclic dependency detected', function () {
@@ -137,67 +136,6 @@ describe('Injector', function () {
 			expect(function () {
 				subj.create('Class');
 			}).toThrowErrorLike(/Cyclic dependency detected in binding chain: Class->Dependency->Class/);
-		});
-		
-		describe('injection:', function () {
-			
-			describe('dependencies configured with `register`', function () {
-				it('should be able to perform different types of injection', function () {
-					Class = function (constructorParams) {
-						this.params = constructorParams;
-					};
-					Class.prototype.someSetter = jasmine.createSpy();
-					
-					subj.register('Class', Class, {
-						ctor: ['params'],
-						properties: {
-							'someProperty': 'value1',
-							'someSetter': '(value2)'
-						}
-					});
-					
-					subj.set('params', 123);
-					subj.set('value1', 1);
-					subj.set('value2', 2);
-					
-					// test injections
-					var res = subj.create('Class');
-					expect(res.params).toEqual(123);
-					expect(res.someProperty).toEqual(1);
-					expect(res.someSetter).toHaveBeenCalledWith(2);
-				});
-				
-				it('should take precendence above dependencies configured through `$inject` field', function () {
-					Class = jasmine.createSpy();
-					Class.$inject = ['constructorParam'];
-					
-					subj.register('Class', Class, {
-						properties: {
-							param: 'property'
-						}
-					});
-					subj.set('property', 'value');
-					
-					var res;
-					expect(function () {
-						res = subj.create('Class');
-					}).not.toThrow();
-					
-					expect(
-						res.param
-					).toBe('value');
-					
-					expect(
-						Class
-					).toHaveBeenCalled();
-				});
-			});
-		});
-		
-		xdescribe('targeted bindings', function () {
-		    beforeEach(function () {
-		        Class = function () {};
-		    });
 		});
 	});
 });
