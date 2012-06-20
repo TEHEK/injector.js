@@ -1,6 +1,6 @@
 {
 	"name": "injector.js",
-	"description": "Dependency injection library for JavaScript in browsers and NodeJS",
+	"description": "[Some nice adjective] dependency injection library for JavaScript in browsers and NodeJS",
 	"version": "1.0.0",
 	"homepage": "https://github.com/TEHEK/injector.js",
 	"author": "TEHEK Firefox",
@@ -12,6 +12,11 @@
 		"mail": "dev@tehek.net",
 		"url": "https://github.com/TEHEK/injector.js/issues"
 	},
+	"keywords": [
+		"node", 
+		"dependency injection", 
+		"di container"
+	],
 	"licenses": [
 		{
 			"type": "BSD",
